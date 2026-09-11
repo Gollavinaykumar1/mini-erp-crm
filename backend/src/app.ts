@@ -9,8 +9,24 @@ import challanRoutes from './routes/challanRoutes';
 
 const app = express();
 
-app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+// Support comma-separated origins for production (e.g. Vercel URL + localhost)
+const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map(o => o.trim());
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS: origin ${origin} not allowed`));
+    }
+  },
+  credentials: true,
+}));
 app.use(express.json());
+
+// Health check endpoint
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok' });
+});
 
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
